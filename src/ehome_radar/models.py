@@ -65,3 +65,4 @@ class Event:
     @property
     def duration(self) -> float:
         return max(0.0, self.end - self.start)
+

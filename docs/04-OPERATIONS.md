@@ -51,3 +51,8 @@ or stream `CSI_DATA` lines over UDP to port 5005 with `kind: csi-udp`.
 
 ## Security
 Binds to localhost only. To expose on LAN set `server.host`, and put a reverse proxy with auth in front (no built-in auth).
+
+
+## Radar view
+The dashboard is a radar map; see [06-RADAR-LOCALIZATION.md](06-RADAR-LOCALIZATION.md).
+Set the AP position in `radar.links[0].tx` (metres from the laptop). Demo: `ehome-radar run --sim`.

@@ -74,3 +74,4 @@ class Storage:
     def close(self) -> None:
         with self.lock:
             self.db.close()
+

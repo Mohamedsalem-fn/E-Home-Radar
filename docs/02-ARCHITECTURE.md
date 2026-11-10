@@ -54,3 +54,4 @@ docs/              this documentation
 - **Thread model**: sensor thread → thread-safe queue → engine thread; FastAPI
   async loop reads engine snapshots, broadcasts over WebSocket at ~5 Hz.
 - **Local-only** by default (`127.0.0.1:8787`).
+

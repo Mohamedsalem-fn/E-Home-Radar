@@ -35,3 +35,4 @@ def combine(f: Dict[str, float], w_var: float, w_mad: float, w_diff: float, w_ba
         + w_diff * f["diff"]
         + w_band * f["band"] ** 0.5
     )
+

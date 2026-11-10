@@ -52,3 +52,4 @@ class Alerts:
                 fn(kind, payload)
             except Exception as e:  # pragma: no cover
                 log.warning("custom sink failed: %s", e)
+

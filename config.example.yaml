@@ -24,3 +24,8 @@ server:
 storage:
   path: ~/.local/share/ehome-radar/radar.db
   retention_days: 30
+
+radar:
+  bounds: [-5, 5, -5, 5]   # room extent in metres [xmin, xmax, ymin, ymax]
+  links:                   # add more links (ESP32 nodes) for real positioning
+    - {id: main, tx: [3.0, 0.0], rx: [0.0, 0.0]}

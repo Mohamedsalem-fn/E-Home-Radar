@@ -160,3 +160,4 @@ def test_engine_end_to_end_with_simulator():
             break
     ev = eng.storage.events()
     assert len(ev) == 1 and 30 <= ev[0]["start"] <= 33
+

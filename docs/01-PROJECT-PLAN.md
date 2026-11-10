@@ -71,3 +71,4 @@ refreshed. Optional plug-in sensor = ESP32 CSI over serial/UDP (far more sensiti
 
 ## 8. Credits
 Designed and built by **Mohamed Salem** — Expert AI Engineer & Automation Architect.
+

@@ -30,3 +30,4 @@ def test_websocket_hello():
     c, _ = make_client()
     with c.websocket_connect("/ws") as ws:
         assert ws.receive_json()["type"] == "hello"
+

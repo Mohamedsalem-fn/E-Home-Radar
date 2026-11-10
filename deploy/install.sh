@@ -19,3 +19,4 @@ if [ "${1:-}" = "--service" ]; then
   echo "service enabled: systemctl --user status ehome-radar"
 fi
 echo "Run: .venv/bin/ehome-radar run   ->  http://127.0.0.1:8787"
+

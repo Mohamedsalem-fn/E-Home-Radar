@@ -16,7 +16,7 @@ flowchart LR
   D --> G[FastAPI REST + WebSocket] --> H[Live dashboard]
 ```
 Full docs: [Plan](docs/01-PROJECT-PLAN.md) · [Architecture](docs/02-ARCHITECTURE.md) ·
-[Algorithms](docs/03-ALGORITHMS.md) · [Operations](docs/04-OPERATIONS.md) · [Testing](docs/05-TESTING.md)
+[Algorithms](docs/03-ALGORITHMS.md) · [Operations](docs/04-OPERATIONS.md) · [Testing](docs/05-TESTING.md) · [Radar & localisation](docs/06-RADAR-LOCALIZATION.md)
 
 Inspired by open-source work: [espectre](https://github.com/francescopace/espectre),
 [esp-csi](https://github.com/espressif/esp-csi),
@@ -46,6 +46,10 @@ See [Operations](docs/04-OPERATIONS.md) for the API reference, config and troubl
 ## Configuration
 Copy `config.example.yaml` → `config.yaml` (sensor kind, profile, alerts, storage).
 
+## Radar view
+The dashboard is a live radar map (heat map, target marker, trail). With the built-in single Wi-Fi link it shows the motion *zone*; with 3+ links/ESP32 nodes it estimates position (see docs/06). Try `ehome-radar run --sim`.
+
 ## Credits / Author
 Designed and developed by **Mohamed Salem** — Expert AI Engineer & Automation Architect
 (AI Engineering · Automation · LLMs · Agentic Systems · MLOps).
+

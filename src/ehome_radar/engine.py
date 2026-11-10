@@ -16,6 +16,7 @@ from typing import Callable, Deque, List, Optional
 from .alerts import Alerts
 from .config import Config
 from .dsp.detector import MotionDetector
+from .localize import Localizer
 from .models import Reading, State
 from .sensors import Sensor, make_sensor
 from .storage import Storage
@@ -30,7 +31,13 @@ class Engine:
         self.sensor = sensor
         self.storage = storage or Storage(cfg.storage.path, cfg.storage.retention_days)
         self.alerts = alerts or Alerts(cfg.alerts)
-        self.detector = MotionDetector(cfg.detector, cfg.sensor.rate_hz)
+        self.detector = MotionDetector(cfg.detector, cfg.sensor.rate_hz)  # primary link
+        self.detectors = {}
+        for l in cfg.radar.links:
+            self.detectors[l["id"]] = self.detector if not self.detectors else MotionDetector(cfg.detector, cfg.sensor.rate_hz)
+        self.localizer = Localizer(cfg.radar.links, tuple(cfg.radar.bounds))
+        self.radar_state: dict = {}
+        self._last_radar = 0.0
         self.history: Deque[dict] = deque(maxlen=1200)  # ~4 min @ 5 Hz
         self.latest: Optional[Reading] = None
         self.last_sample_ts = 0.0
@@ -80,7 +87,20 @@ class Engine:
     def process(self, sample) -> Optional[Reading]:
         self.sample_count += 1
         self.last_sample_ts = sample.ts
-        r = self.detector.update(sample)
+        lid = sample.meta.get("link", next(iter(self.detectors)))
+        det = self.detectors.get(lid)
+        if det is None:
+            return None
+        r = det.update(sample)
+        if r is not None:
+            moving = r.calibrated and r.state.value in ("MOTION", "COOLDOWN")
+            self.localizer.set_z(lid, r.z if moving else 0.0)
+        if sample.ts - self._last_radar >= 0.2:
+            self._last_radar = sample.ts
+            self.radar_state = {**self.localizer.step(), "links": self.localizer.geometry(), "ts": sample.ts}
+            self.publish({"type": "radar", **self.radar_state})
+        if det is not self.detector:
+            return r
         for ev in self.detector.finished_events:
             ev.id = self.storage.add_event(ev)
             log.info("event %d: %.1fs peak %.0f", ev.id, ev.duration, ev.peak_score)
@@ -104,6 +124,14 @@ class Engine:
         self.publish({"type": "reading", **d})
         return r
 
+    def recalibrate_all(self) -> None:
+        for d in self.detectors.values():
+            d.recalibrate()
+
+    def set_profile_all(self, name: str) -> None:
+        for d in self.detectors.values():
+            d.set_profile(name)
+
     def publish(self, msg: dict) -> None:
         for fn in list(self.subscribers):
             try:
@@ -124,3 +152,4 @@ class Engine:
             "thresholds": {"on": d.t_on, "off": d.t_off},
             "sample_lag_s": None if lag is None else round(lag, 2),
         }
+

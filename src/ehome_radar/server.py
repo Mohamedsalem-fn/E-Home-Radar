@@ -53,20 +53,24 @@ def create_app(engine: Engine, autostart: bool = True) -> FastAPI:
         cut = time.time() - seconds
         return [h for h in engine.history if h["ts"] >= cut]
 
+    @app.get("/api/radar")
+    def radar():
+        return engine.radar_state
+
     @app.get("/api/events")
     def events(limit: int = 100):
         return engine.storage.events(limit=min(limit, 1000))
 
     @app.post("/api/calibrate")
     def calibrate():
-        engine.detector.recalibrate()
+        engine.recalibrate_all()
         return {"ok": True, "state": engine.detector.state.value}
 
     @app.post("/api/profile")
     def profile(name: str = Body(..., embed=True)):
         if name not in PROFILES:
             raise HTTPException(400, f"profile must be one of {sorted(PROFILES)}")
-        engine.detector.set_profile(name)
+        engine.set_profile_all(name)
         return {"ok": True, "profile": name}
 
     @app.websocket("/ws")

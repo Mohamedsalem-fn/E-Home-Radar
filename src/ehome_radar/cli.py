@@ -60,8 +60,22 @@ def cmd_run(cfg, a) -> int:
         cfg.detector.profile = a.profile
     if a.port:
         cfg.server.port = a.port
+    if cfg.sensor.kind == "sim" and len(cfg.radar.links) < 2:
+        cfg.radar.links = [
+            {"id": "A", "tx": [-3.5, 3.5], "rx": [3.5, 3.5]},
+            {"id": "B", "tx": [-3.5, -3.5], "rx": [3.5, -3.5]},
+            {"id": "C", "tx": [-3.5, 3.5], "rx": [-3.5, -3.5]},
+            {"id": "D", "tx": [3.5, 3.5], "rx": [3.5, -3.5]},
+            {"id": "E", "tx": [-3.5, 3.5], "rx": [3.5, -3.5]},
+            {"id": "F", "tx": [3.5, 3.5], "rx": [-3.5, -3.5]},
+        ]
     cfg.validate()
-    eng = Engine(cfg)
+    sensor = None
+    if cfg.sensor.kind == "sim":
+        from .sensors import SimulatedSensor
+
+        sensor = SimulatedSensor(cfg.sensor, links=cfg.radar.links)
+    eng = Engine(cfg, sensor=sensor)
     print(f"E-Home Radar {__version__} → http://{cfg.server.host}:{cfg.server.port}  (sensor={cfg.sensor.kind})")
     uvicorn.run(create_app(eng), host=cfg.server.host, port=cfg.server.port, log_level="warning")
     return 0
@@ -130,3 +144,4 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

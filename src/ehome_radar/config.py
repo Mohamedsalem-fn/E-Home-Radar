@@ -65,12 +65,21 @@ class StorageConfig:
 
 
 @dataclass
+class RadarConfig:
+    # room bounds in metres: [xmin, xmax, ymin, ymax]; laptop (rx) defaults to origin
+    bounds: list = field(default_factory=lambda: [-5.0, 5.0, -5.0, 5.0])
+    # each link: id, tx (AP / node position), rx (sensing device position)
+    links: list = field(default_factory=lambda: [{"id": "main", "tx": [3.0, 0.0], "rx": [0.0, 0.0]}])
+
+
+@dataclass
 class Config:
     sensor: SensorConfig = field(default_factory=SensorConfig)
     detector: DetectorConfig = field(default_factory=DetectorConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
     alerts: AlertConfig = field(default_factory=AlertConfig)
     storage: StorageConfig = field(default_factory=StorageConfig)
+    radar: RadarConfig = field(default_factory=RadarConfig)
 
     def validate(self) -> "Config":
         if self.detector.profile not in PROFILES:
@@ -79,6 +88,9 @@ class Config:
             raise ValueError("sensor.rate_hz must be in (0, 200]")
         if self.detector.window_s < 0.5:
             raise ValueError("detector.window_s must be >= 0.5")
+        for l in self.radar.links:
+            if not {"id", "tx", "rx"} <= set(l) or len(l["tx"]) != 2 or len(l["rx"]) != 2:
+                raise ValueError("radar.links entries need id, tx[x,y], rx[x,y]")
         if self.sensor.kind not in ("iw", "csi-serial", "csi-udp", "sim"):
             raise ValueError("unknown sensor.kind")
         return self
@@ -104,3 +116,4 @@ def load_config(path: Optional[str] = None) -> Config:
             raise FileNotFoundError(p)
         _apply(cfg, yaml.safe_load(p.read_text()) or {})
     return cfg.validate()
+

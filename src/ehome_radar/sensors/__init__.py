@@ -200,7 +200,9 @@ class SimulatedSensor(Sensor):
     name = "sim"
 
     def __init__(self, cfg: SensorConfig, seed: int = 7, realtime: bool = True,
-                 bursts: Optional[List[tuple]] = None, start_ts: Optional[float] = None):
+                 bursts: Optional[List[tuple]] = None, start_ts: Optional[float] = None,
+                 links: Optional[List[dict]] = None):
+        self.links = links or []
         self.rate = cfg.rate_hz
         self.rng = random.Random(seed)
         self.realtime = realtime
@@ -212,6 +214,12 @@ class SimulatedSensor(Sensor):
         i = 0
         while not self._stop:
             t = i / self.rate
+            if len(self.links) > 1:
+                yield from self._multi(t)
+                i += 1
+                if self.realtime:
+                    time.sleep(1.0 / self.rate)
+                continue
             v = -55.0 + self.rng.gauss(0, 0.35)
             for a, b, amp in self.bursts:
                 if a <= t < b:
@@ -224,6 +232,31 @@ class SimulatedSensor(Sensor):
                 time.sleep(1.0 / self.rate)
 
 
+def _sim_person(t: float):
+    # scripted walker: loops an ellipse for 12 s every 30 s, otherwise absent
+    ph = t % 30.0
+    if ph > 12.0 or t < 25.0:
+        return None
+    a = 2 * math.pi * ph / 12.0
+    return 2.2 * math.cos(a), 1.6 * math.sin(a) + 0.5
+
+
+def _multi(self, t):
+    p = _sim_person(t)
+    for l in self.links:
+        v = -55.0 + self.rng.gauss(0, 0.35)
+        if p:
+            tx, rx = l["tx"], l["rx"]
+            L = math.hypot(tx[0] - rx[0], tx[1] - rx[1])
+            ex = math.hypot(p[0] - tx[0], p[1] - tx[1]) + math.hypot(p[0] - rx[0], p[1] - rx[1]) - L
+            amp = 4.0 * math.exp(-(ex ** 2) / (2 * 0.6 ** 2))
+            v += amp * math.sin(2 * math.pi * 1.3 * t) * self.rng.uniform(0.6, 1.2) + self.rng.gauss(0, amp * 0.3)
+        yield Sample(self.t0 + t, [float(round(v))], {"bssid": l["id"], "channel": "6", "link": l["id"]})
+
+
+SimulatedSensor._multi = _multi
+
+
 def make_sensor(cfg: SensorConfig) -> Sensor:
     return {
         "iw": IwSensor,
@@ -231,3 +264,4 @@ def make_sensor(cfg: SensorConfig) -> Sensor:
         "csi-udp": CsiUdpSensor,
         "sim": SimulatedSensor,
     }[cfg.kind](cfg)
+
