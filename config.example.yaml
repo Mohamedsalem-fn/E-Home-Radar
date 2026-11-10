@@ -1,0 +1,26 @@
+# Author: Mohamed Salem (Expert AI Engineer & Automation Architect)
+# Copyright (c) 2026. All Rights Reserved.
+# E-Home Radar configuration. All keys optional; defaults shown.
+sensor:
+  kind: iw            # iw | csi-serial | csi-udp | sim
+  interface: ""       # empty = auto-detect
+  rate_hz: 20
+  probe: true         # light ping to gateway keeps RSSI fresh
+  serial_port: /dev/ttyUSB0
+  serial_baud: 921600
+  udp_port: 5005
+detector:
+  profile: medium     # low | medium | high
+  window_s: 2.0
+  calibration_s: 20
+  hold_s: 5
+  drift_tau_s: 300
+alerts:
+  desktop: true
+  webhook_url: ""
+server:
+  host: 127.0.0.1
+  port: 8787
+storage:
+  path: ~/.local/share/ehome-radar/radar.db
+  retention_days: 30

@@ -1,0 +1,31 @@
+# Author: Mohamed Salem (Expert AI Engineer & Automation Architect)
+# Copyright (c) 2026. All Rights Reserved.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ehome-radar"
+version = "1.0.0"
+description = "Professional Wi-Fi based device-free motion detection system"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Mohamed Salem", email = "noreply@users.noreply.github.com" }]
+license = { text = "MIT" }
+dependencies = ["numpy", "fastapi", "uvicorn[standard]", "pyyaml", "pyserial"]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[project.scripts]
+ehome-radar = "ehome_radar.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ehome_radar = ["web/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

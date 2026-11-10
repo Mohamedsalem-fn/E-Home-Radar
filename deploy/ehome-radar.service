@@ -1,0 +1,15 @@
+[Unit]
+Description=E-Home Radar - Wi-Fi motion detection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Desktop/Projects/E-Home
+ExecStart=%h/Desktop/Projects/E-Home/.venv/bin/ehome-radar -c %h/Desktop/Projects/E-Home/config.yaml run
+Restart=on-failure
+RestartSec=5
+# Author: Mohamed Salem (Expert AI Engineer & Automation Architect)
+
+[Install]
+WantedBy=default.target

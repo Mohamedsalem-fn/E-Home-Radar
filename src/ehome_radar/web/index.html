@@ -1,0 +1,70 @@
+<!doctype html>
+<!--
+  Author: Mohamed Salem (Expert AI Engineer & Automation Architect)
+  Focus: AI Engineering | Automation | Agentic Systems
+  Copyright (c) 2026. All Rights Reserved.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E-Home Radar</title>
+<style>
+  :root{--bg:#0b1020;--card:#131a30;--fg:#e6ebff;--mut:#8a94b8;--ok:#2ecc71;--warn:#f39c12;--bad:#ff4d6d;--acc:#4da3ff}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif}
+  header{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #222a47}
+  h1{font-size:18px;margin:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:18px}
+  .card{background:var(--card);border-radius:12px;padding:16px}.wide{grid-column:1/-1}
+  .big{font-size:34px;font-weight:700}.mut{color:var(--mut);font-size:13px}
+  .pill{padding:4px 12px;border-radius:99px;font-weight:600;font-size:13px}
+  .IDLE{background:#1c3a2b;color:var(--ok)}.MOTION{background:#4a1c2a;color:var(--bad)}
+  .COOLDOWN{background:#4a3a1c;color:var(--warn)}.CALIBRATING,.SENSOR_LOST{background:#1c2f4a;color:var(--acc)}
+  canvas{width:100%;height:220px;display:block}
+  button,select{background:#1e2850;color:var(--fg);border:1px solid #2c3a6e;border-radius:8px;padding:7px 12px;cursor:pointer}
+  table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:6px;border-bottom:1px solid #222a47}
+  .bar{height:10px;background:#1e2850;border-radius:6px;overflow:hidden}.bar>div{height:100%;background:linear-gradient(90deg,var(--ok),var(--warn),var(--bad));width:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>📡 E-Home Radar <span class="mut">wireless motion detection</span></h1>
+  <div><span id="state" class="pill CALIBRATING">…</span>
+  <select id="profile"><option>low</option><option selected>medium</option><option>high</option></select>
+  <button id="cal">Recalibrate</button></div>
+</header>
+<div class="grid">
+  <div class="card"><div class="mut">Motion score</div><div class="big" id="score">0</div><div class="bar"><div id="bar"></div></div></div>
+  <div class="card"><div class="mut">Signal (raw)</div><div class="big" id="raw">–</div><div class="mut" id="sensor">sensor: –</div></div>
+  <div class="card"><div class="mut">Z-score vs baseline</div><div class="big" id="z">–</div><div class="mut" id="thr">thresholds: –</div></div>
+  <div class="card"><div class="mut">Samples</div><div class="big" id="n">0</div><div class="mut" id="lag"></div></div>
+  <div class="card wide"><div class="mut">Live signal & activity (last 2 min)</div><canvas id="plot" width="1200" height="220"></canvas></div>
+  <div class="card wide"><div class="mut">Recent events</div><table><thead><tr><th>Start</th><th>Duration</th><th>Peak</th></tr></thead><tbody id="ev"></tbody></table></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);let data=[];const MAX=700;
+function draw(){const c=$('plot'),g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);if(data.length<2)return;
+ const W=c.width,H=c.height,n=data.length;
+ const line=(key,color,lo,hi,sc)=>{g.beginPath();g.strokeStyle=color;g.lineWidth=1.6;
+  data.forEach((d,i)=>{const x=i/(MAX-1)*W,y=H-((d[key]-lo)/(hi-lo))*H*.9-H*.05;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke()};
+ const raws=data.map(d=>d.filtered),lo=Math.min(...raws)-1,hi=Math.max(...raws)+1;
+ data.forEach((d,i)=>{if(d.state==='MOTION'){g.fillStyle='rgba(255,77,109,.18)';g.fillRect(i/(MAX-1)*W,0,W/MAX+1,H)}});
+ line('filtered','#4da3ff',lo,hi);line('score','#2ecc71',0,100)}
+function setState(s){const e=$('state');e.textContent=s;e.className='pill '+s}
+function onReading(d){data.push(d);if(data.length>MAX)data.shift();
+ $('score').textContent=d.score.toFixed(0);$('bar').style.width=d.score+'%';$('raw').textContent=d.raw;$('z').textContent=d.z.toFixed(1);setState(d.state);draw()}
+async function refresh(){try{const s=await (await fetch('/api/status')).json();
+ $('sensor').textContent='sensor: '+s.sensor+' · profile: '+s.profile;$('n').textContent=s.samples;
+ $('thr').textContent='on '+s.thresholds.on+' / off '+s.thresholds.off;$('lag').textContent=s.sample_lag_s==null?'':'lag '+s.sample_lag_s+'s';
+ $('profile').value=s.profile;
+ const ev=await (await fetch('/api/events?limit=10')).json();
+ $('ev').innerHTML=ev.map(e=>`<tr><td>${new Date(e.start*1000).toLocaleString()}</td><td>${e.duration}s</td><td>${e.peak}</td></tr>`).join('')||'<tr><td colspan=3 class=mut>none yet</td></tr>'}catch(e){}}
+function connect(){const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+ ws.onmessage=m=>{const d=JSON.parse(m.data);if(d.type==='hello'){data=d.history.slice(-MAX);draw()}
+  else if(d.type==='reading')onReading(d);else if(d.type==='event')refresh()};
+ ws.onclose=()=>setTimeout(connect,2000)}
+$('cal').onclick=()=>fetch('/api/calibrate',{method:'POST'});
+$('profile').onchange=e=>fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:e.target.value})});
+connect();refresh();setInterval(refresh,3000);
+</script>
+</body>
+</html>
